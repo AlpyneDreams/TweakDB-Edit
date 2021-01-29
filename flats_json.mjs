@@ -9,7 +9,7 @@ let deepCopy = (object) => v8.deserialize(v8.serialize(object))
 // get the line number of a character in a stirng by index
 let lineNumber = (text, index) => text.substring(0, index).split('\n').length
 
-
+// sort an object or an array (see sortObj below)
 let sortObjOrArray = (obj) => {
     // HACK: EulerAngles
     if (typeof obj === 'object' && obj._type !== 'EulerAngles') {
@@ -21,6 +21,9 @@ let sortObjOrArray = (obj) => {
     return obj
 
 }
+
+// sorts entries in an object by key alphabetically
+// TODO: we may prefer to preserve original order, instead of parity with CSV
 let sortObj = (unordered) => Object.keys(unordered).sort().reduce(
     (obj, key) => {
         obj[key] = sortObjOrArray(unordered[key])
@@ -31,6 +34,9 @@ let sortObj = (unordered) => Object.keys(unordered).sort().reduce(
 
 console.log('Parsing JSON...')
 
+
+// Read file. Fix malformed JSON, handle duplicate keys, etc.
+// These are all quirks specific to the JSON output by TweakDump
 let data, keyCounts
 {
     console.log('Reading file...')
@@ -42,7 +48,7 @@ let data, keyCounts
     // Convert number keys to strings
     text = text.replace(/^(\s*)(\d+)\s*:/gm, '$1"$2":')
 
-    // Convert 64-bit integers to strings
+    // Convert 64-bit integers to strings to preserve precision
     text = text.replace(/\d{10,}/g, function(match) {
         if (parseInt(match) > Number.MAX_SAFE_INTEGER) {
             return `"${match}"`
@@ -51,6 +57,7 @@ let data, keyCounts
         }
     })
 
+    // count duplicate keys and number them appropriately
     keyCounts = {}
     text = text.replace(/"((?:[^"\\]|\\.)*)"\s*:\s*([{[])/g, function(match, key, bracket) {
         if (key in keyCounts) {
@@ -61,6 +68,7 @@ let data, keyCounts
         }
     })
 
+    // parse the actual JSON
     try {
         data = JSON.parse(text)
     } catch (err) {
@@ -114,16 +122,18 @@ const TYPES_CLASSES = [
     'Vector4'
 ]
 
+// converts a value like ["String", "foo bar"] to "foo bar"
 function convertValue(val) {
     if (val == undefined) return val
     let [type, value] = val
 
+    // handle arrays
     if (type.startsWith('array:')) {
         let itemType = type.slice('array:'.length)
         return value.map(e => convertValue([itemType, e]))
     }
 
-    // parity with CSV parser (temporary TODO FIXME)
+    // parity with CSV parser (temporary TODO HACK FIXME)
     if (type === 'TweakDBID' && typeof value === 'number')
         value = value.toString(16).padStart(16, '0')
 
@@ -143,7 +153,7 @@ function convertValue(val) {
             /*value.r = value.Roll
             value.p = value.Pitch
             value.y = value.Yaw*/
-            // TODO HACK: awful god terrible
+            // TODO FIXME HACK: awful god terrible
             value.r = value.Pitch
             value.p = value.Yaw
             value.y = value.Roll
@@ -229,8 +239,10 @@ let g_obj
 
 // expand TweakDBID's of the format xxx_inline# to their actual data entry
 function expandInlines(obj, root, realRoot) {
+    // need to preserve a copy for future lookups after we delete stuff
     root = root || deepCopy(obj)
     realRoot = realRoot || obj
+
     for (let key in obj) {
         let val = obj[key]
         switch (typeof(val)) {
@@ -239,8 +251,10 @@ function expandInlines(obj, root, realRoot) {
                 if (val.startsWith('@'))
                     continue
                 if (val.match(/_inline\d+$/)) {
-                    obj[key] = getValue(root, val)
-                    setValue(realRoot, val, undefined)
+                    let inlineKey = val
+                    obj[key] = getValue(root, inlineKey)
+                    setValue(realRoot, inlineKey, undefined)
+
                     if (typeof obj[key] === 'object') {
                         obj[key] = expandInlines(obj[key], root, realRoot)
                     }
@@ -269,7 +283,7 @@ console.log('Writing JSON...')
 if (!oldfs.existsSync('data'))
     await fs.mkdir('data')
 
-let files = []
+// write each root object into its own JSON file
 let filesOriginalCase = []
 
 function fixCaseConflicts(key, quiet = false) {

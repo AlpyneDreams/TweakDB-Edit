@@ -5,6 +5,8 @@ import v8 from 'v8'
 // structured/deep clone. we just use the v8 thing
 let deepCopy = (object) => v8.deserialize(v8.serialize(object))
 
+// split string at most 'max' times.
+// unlike String.split, it will merge all stuff after the last separator into one 
 let splitMax = (str, sep, max) => {
     let split = str.split(sep)
     if (split.length > max)
@@ -36,10 +38,14 @@ function deserialize(type, value) {
     if (type.startsWith('array:')) {
         let items = value.trim().split(' ').slice(1, -1)    // remove '[' and ']'
         let itemType = type.slice('array:'.length)          // get type of array elements
+
+        // vector arrays
         if (itemType.startsWith('Vector')) {
             if (value.trim() === '[  ]') return []
             items = value.trim().split('}{').map(e => '{ ' + e.substring(e.indexOf('x')).trim() + ' }')
             items[items.length - 1] = items[items.length - 1].slice(0, -4)
+
+        // string arrays
         } else if (itemType === 'String' || itemType === 'CName') {
             items = JSON.parse(value.trim().replace(/" "/g, '","'))
         }
@@ -176,6 +182,7 @@ for (var e of g_entries) {
     //typeCounts[type] = typeCounts[type] == undefined ? 1 : (typeCounts[type] + 1)
 
     // skip hex keys (string missing)
+    // TODO: potentially include these in their own file
     if (key.match(/^[0-9a-f]+$/i)) {
         skipped++
         continue
