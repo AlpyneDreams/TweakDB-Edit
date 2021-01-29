@@ -187,13 +187,13 @@ console.log(`Skipped ${skipped} hex keys`)
 
 console.log('Writing JSON...')
 
-if (!oldfs.existsSync('data1'))
-    await fs.mkdir('data1')
+if (!oldfs.existsSync('data_csv'))
+    await fs.mkdir('data_csv')
 
 for (let key in g_obj) {
     let fname = fixCaseConflicts(key)
     let ob = {}
     ob[key] = g_obj[key]
-    console.log(`Writing data1/${fname}.json...`)
-    fs.writeFile(`data1/${fname}.json`, JSON.stringify(ob, null, '\t'))
+    console.log(`Writing data_csv/${fname}.json...`)
+    fs.writeFile(`data_csv/${fname}.json`, JSON.stringify(ob, null, '\t'))
 }
