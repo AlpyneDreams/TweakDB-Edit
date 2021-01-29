@@ -123,6 +123,9 @@ const TYPES_CLASSES = [
     'Vector4'
 ]
 
+const MAX_UINT32 = 2**32 - 1    // 4294967295
+const MAX_INT32 = 2**31 - 1     // 2147483647
+
 // converts a value like ["String", "foo bar"] to "foo bar"
 function convertValue(val) {
     if (val == undefined) return val
@@ -169,8 +172,9 @@ function convertValue(val) {
     } else if (!TYPES.includes(type))
         console.log(`Deserializing unknown type: ${type}`)
     
-    // TODO HACK FIXME ??? this bug
-    if (value === 4294967295) value = -1
+    // CDPR BUG: Int32 treated as if unsigned
+    if (value > MAX_INT32 && value <= MAX_UINT32)
+        value = -(MAX_UINT32 - value + 1)
 
     return value
 }
