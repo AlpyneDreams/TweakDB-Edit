@@ -7,7 +7,7 @@ import {fixCaseConflicts, getValue} from './tools.mjs'
 // structured/deep clone. we just use the v8 thing
 let deepCopy = (object) => v8.deserialize(v8.serialize(object))
 
-// get the line number of a character in a stirng by index
+// get the line number of a character in a string by index
 let lineNumber = (text, index) => text.substring(0, index).split('\n').length
 
 // sort an object or an array (see sortObj below)

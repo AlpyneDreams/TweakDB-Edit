@@ -2,6 +2,8 @@
 
 Cyberpunk 2077 TweakDB editor to be used in conjunction with [TweakDump](https://www.cyberpunk.net/en/modding-support).
 
+[Download Link](https://github.com/AlpyneDreams/TweakDB-Edit/archive/main.zip).
+
 ## Instructions
 
 You will need [Node.js](https://nodejs.org/). (Any recent version should work, I recommend `14.15` if you encounter issues). Make sure to enable "Add to PATH" in the installer.
