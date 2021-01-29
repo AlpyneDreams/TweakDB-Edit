@@ -2,6 +2,7 @@ import fs from 'fs/promises'
 import oldfs from 'fs'
 import v8 from 'v8'
 import repl from 'repl'
+import {fixCaseConflicts, getValue} from './tools.mjs'
 
 // structured/deep clone. we just use the v8 thing
 let deepCopy = (object) => v8.deserialize(v8.serialize(object))
@@ -201,21 +202,6 @@ function setValue(obj, keystr, value) {
     o[last] = value
 }
 
-function getValue(obj, keystr) {
-    let o = obj
-    // TODO: use array reduce or something
-    let keys = keystr.split('.')
-    for (let key of keys) {
-        o = o[key]
-        if (o === undefined) {
-            console.error(`getValue: cannot find '${keystr}'`)
-            // use @ to signify unresolved TweakDBID
-            return '@' + keystr
-        }
-    }
-    return o
-}
-
 // Build structure
 let g_obj
 {
@@ -284,25 +270,6 @@ if (!oldfs.existsSync('data'))
     await fs.mkdir('data')
 
 // write each root object into its own JSON file
-let filesOriginalCase = []
-
-function fixCaseConflicts(key, quiet = false) {
-    let i = files.indexOf(key.toLowerCase())
-    let res = key
-    if (i !== -1) {
-        res = key + '1'
-        if (files.includes(res)) {
-            console.error('ERROR: 3-way case conflict. good lord')
-            process.exit(1)
-        }
-        console.error(`WARNING: Case conflict for root key '${key}' with '${filesOriginalCase[i]}'. JSON file will be saved as '${res}'`)
-    }
-    files.push(key.toLowerCase())
-    filesOriginalCase.push(key)
-    return res
-}
-console.dir(g_obj.MedicActions.Resurrect.activationCondition.spatialAND[0].spatialHintMults)
-
 for (let key in g_obj) {
     let fname = fixCaseConflicts(key)
     let ob = {}
