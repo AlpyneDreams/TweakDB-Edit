@@ -14,6 +14,13 @@ You will need [Node.js](https://nodejs.org/). (Any recent version should work, I
 5. Browse the new data folder, you should see everything you'll want to see.
 6. Compiling back to `tweakdb.bin` coming soon!
 
+## Current Features
+
+- Expands the full structured TweakDB into a set of JSON files
+- Handles pretty much all weird quirks in TweakDump JSON
+- Unpacks every `_inline#` object
+- Adds type metadata to structs (key is `_type`)
+
 ## Planned Features
 
 - Ability to compile JSON back to TweakDB
