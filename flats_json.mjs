@@ -2,7 +2,10 @@ import fs from 'fs/promises'
 import oldfs from 'fs'
 import v8 from 'v8'
 import repl from 'repl'
-import {fixCaseConflicts, getValue} from './tools.mjs'
+import {fixCaseConflicts, getValue, parseJSON} from './tools.mjs'
+
+const IN_FILE = 'out/twk_flats.json'
+const OUT_DIR = 'data'
 
 let config = {
     // parity means the output JSON is tweaked to better match flats_csv.mjs' output for easy diffing
@@ -55,56 +58,10 @@ let sortObj = (unordered) => Object.keys(unordered).sort().reduce(
 console.log('Parsing JSON...')
 
 
-// Read file. Fix malformed JSON, handle duplicate keys, etc.
-// These are all quirks specific to the JSON output by TweakDump
-let data, keyCounts
-{
-    console.log('Reading file...')
-    let text = await fs.readFile('out/twk_flats.json', {encoding: 'utf8'})
-
-    // Replace '\' with '\\`
-    text = text.replace(/\\/g, '\\\\')
-
-    // Convert number keys to strings
-    text = text.replace(/^(\s*)(\d+)\s*:/gm, '$1"$2":')
-
-    // Convert 64-bit integers to strings to preserve precision
-    text = text.replace(/\d{10,}/g, function(match) {
-        if (parseInt(match) > Number.MAX_SAFE_INTEGER) {
-            return `"${match}"`
-        } else {
-            return match
-        }
-    })
-
-    // count duplicate keys and number them appropriately
-    keyCounts = {}
-    text = text.replace(/"((?:[^"\\]|\\.)*)"\s*:\s*([{[])/g, function(match, key, bracket) {
-        if (key in keyCounts) {
-            return `"${key}${keyCounts[key]++}": ${bracket}`
-        } else {
-            keyCounts[key] = 1
-            return match
-        }
-    })
-
-    // parse the actual JSON
-    try {
-        data = JSON.parse(text)
-    } catch (err) {
-        if (err instanceof SyntaxError) {
-            console.log(err)
-            // get index of syntax error
-            let index = parseInt(err.message.match(/\d+/)[0])
-            // convert index to line number
-            let line = text.substring(0, index).split('\n').length
-            console.log(`Line: ${line}`)
-        }
-    }
-
-    //console.dir(data, {depth: 1})
-    //console.dir(keyCounts)
-}
+// Read file. 
+console.log('Reading file...')
+let text = await fs.readFile(IN_FILE, {encoding: 'utf8'})
+let {data, keyCounts} = parseJSON(text)
 
 const TYPES = [
     'CResource',
@@ -244,7 +201,6 @@ let g_obj
             setValue(obj, k, convertValue(val))
         }
     }
-    //await fs.writeFile('out.json', JSON.stringify(obj, null, '\t'))
     g_obj = obj
 }
 
@@ -285,21 +241,21 @@ console.log('Expanding inline data...')
 
 g_obj = expandInlines(g_obj)
 
-/*
-global.keys = keyCounts
-global.obj = g_obj
-repl.start({useGlobal: true, preview: false})
-*/
+
+//global.keys = keyCounts
+//global.obj = g_obj
+//repl.start({useGlobal: true, preview: false})
+
 console.log('Writing JSON...')
 
-if (!oldfs.existsSync('data'))
-    await fs.mkdir('data')
+if (!oldfs.existsSync(OUT_DIR))
+    await fs.mkdir(OUT_DIR)
 
 // write each root object into its own JSON file
 for (let key in g_obj) {
     let fname = fixCaseConflicts(key)
     let ob = {}
     ob[key] = g_obj[key]
-    console.log(`Writing data/${fname}.json...`)
-    fs.writeFile(`data/${fname}.json`, JSON.stringify(config.sort ? sortObj(ob) : ob, null, '\t'))
+    console.log(`Writing ${OUT_DIR}/${fname}.json...`)
+    fs.writeFile(`${OUT_DIR}/${fname}.json`, JSON.stringify(config.sort ? sortObj(ob) : ob, null, '\t'))
 }
