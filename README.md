@@ -21,11 +21,11 @@ You will need [Node.js](https://nodejs.org/). (Any recent version should work, I
 - Expands the full structured TweakDB into a set of JSON files
 - Handles pretty much all weird quirks in TweakDump JSON
 - Unpacks every `_inline#` object
-- Adds type metadata to structs (key is `_type`)
+- Adds type metadata to structs (key is `_type`), for integral types and types with a record ID from [TweakDB Schema](https://github.com/gibbed/Cyberpunk-TweakDB-Schema)
 
 ## Planned Features
 
 - Ability to compile JSON back to TweakDB
     - Incremental loading of TweakDB patches to support multiple mods
 - Streamlined process to set up and use
-- Integration with [TweakDB Schema](https://github.com/gibbed/Cyberpunk-TweakDB-Schema)
+- More integration with [TweakDB Schema](https://github.com/gibbed/Cyberpunk-TweakDB-Schema)

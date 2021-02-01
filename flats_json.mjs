@@ -204,6 +204,32 @@ let g_obj
     g_obj = obj
 }
 
+console.log('Processing records...')
+
+import getRecords from './records_json.mjs'
+let records = getRecords()
+
+for (let keystr in records) {
+    let type = records[keystr]
+
+    // skip missing keys
+    if (keystr.match(/^\d+$/)) continue
+
+
+    let obj = getValue(g_obj, keystr)
+    if (typeof obj === 'object' && !Array.isArray(obj)) {
+        if ('_type' in obj && obj._type !== type) {
+            console.log(`WARNING: Records overwriting existing _type '${obj._type}' with '${type}' for '${keystr}'`)
+        }
+        obj._type = type
+    } else if (Array.isArray(obj)) {
+        //console.log(`WARNING: Array with type ${type}`)
+    } else {
+        //console.log(`RECORD: ${type}: ${obj}`)
+    }
+}
+
+
 
 // expand TweakDBID's of the format xxx_inline# to their actual data entry
 function expandInlines(obj, root, realRoot) {
