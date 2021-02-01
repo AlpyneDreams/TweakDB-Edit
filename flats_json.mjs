@@ -4,6 +4,19 @@ import v8 from 'v8'
 import repl from 'repl'
 import {fixCaseConflicts, getValue} from './tools.mjs'
 
+let config = {
+    // parity means the output JSON is tweaked to better match flats_csv.mjs' output for easy diffing
+    parity: !process.argv.includes('--no-parity'),
+    // sort JSON keys alphabetically?
+    sort:   !process.argv.includes('--no-sort')
+}
+
+if (!config.parity)
+    console.log('CSV-parity mode disabled.')
+
+if (!config.sort)
+    console.log('Key sorting disabled. This will break CSV-parity.')
+
 // structured/deep clone. we just use the v8 thing
 let deepCopy = (object) => v8.deserialize(v8.serialize(object))
 
@@ -12,15 +25,21 @@ let lineNumber = (text, index) => text.substring(0, index).split('\n').length
 
 // sort an object or an array (see sortObj below)
 let sortObjOrArray = (obj) => {
-    // HACK: EulerAngles
-    if (typeof obj === 'object' && obj._type !== 'EulerAngles') {
-        if (!Array.isArray(obj))
-            return sortObj(obj)
-        else
+    if (typeof obj === 'object') {
+
+        if (Array.isArray(obj)) {
             return obj.map(sortObjOrArray)
+
+        } else {
+            // PARITY HACK: EulerAngles
+            if (config.parity && obj?._type === 'EulerAngles')
+                return obj
+            
+            return sortObj(obj)
+        }
+            
     }
     return obj
-
 }
 
 // sorts entries in an object by key alphabetically
@@ -137,34 +156,37 @@ function convertValue(val) {
         return value.map(e => convertValue([itemType, e]))
     }
 
-    // parity with CSV parser (temporary TODO HACK FIXME)
-    if (type === 'TweakDBID' && typeof value === 'number')
+    // PARITY HACK: CSV numeric TDBIDs are hex
+    if (config.parity && type === 'TweakDBID' && typeof value === 'number')
         value = value.toString(16).padStart(16, '0')
 
     else if (TYPES_CLASSES.includes(type)) {
         value = Object.assign({_type: type}, value)
         
-        if (type.startsWith('Vector')) {
-            value.x = Number(value.X) || 0
-            value.y = Number(value.Y) || 0
-            delete value.X
-            delete value.Y 
-            if (type === 'Vector3') {
-                value.z = Number(value.Z) || 0
-                delete value.Z    
-            }
-        } else if (type === 'EulerAngles') {
-            /*value.r = value.Roll
-            value.p = value.Pitch
-            value.y = value.Yaw*/
-            // TODO FIXME HACK: awful god terrible
-            value.r = value.Pitch
-            value.p = value.Yaw
-            value.y = value.Roll
+        // PARITY HACK: Change struct property names
+        if (config.parity) {
+            if (type.startsWith('Vector')) {
+                value.x = Number(value.X) || 0
+                value.y = Number(value.Y) || 0
+                delete value.X
+                delete value.Y 
+                if (type === 'Vector3') {
+                    value.z = Number(value.Z) || 0
+                    delete value.Z    
+                }
+            } else if (type === 'EulerAngles') {
+                /*value.r = value.Roll
+                value.p = value.Pitch
+                value.y = value.Yaw*/
+                // TODO FIXME HACK: awful god terrible
+                value.r = value.Pitch
+                value.p = value.Yaw
+                value.y = value.Roll
 
-            delete value.Pitch
-            delete value.Yaw
-            delete value.Roll
+                delete value.Pitch
+                delete value.Yaw
+                delete value.Roll
+            }
         }
 
     } else if (type === 'raRef:CResource') {
@@ -279,5 +301,5 @@ for (let key in g_obj) {
     let ob = {}
     ob[key] = g_obj[key]
     console.log(`Writing data/${fname}.json...`)
-    fs.writeFile(`data/${fname}.json`, JSON.stringify(sortObj(ob), null, '\t'))
+    fs.writeFile(`data/${fname}.json`, JSON.stringify(config.sort ? sortObj(ob) : ob, null, '\t'))
 }
