@@ -1,5 +1,11 @@
 # TweakDB Editor
 
+| <h3>NOTE: You should probably use [WolvenKit to edit TweakDB](https://wiki.redmodding.org/wolvenkit/wolvenkit-app/workflows/tweakdb-editing) instead.</h3> |
+|---|
+| This tool isn't updated and was mostly just a little experiment to convert the output of tweakdump.exe to structured JSON.|
+
+
+
 Cyberpunk 2077 TweakDB editor to be used in conjunction with [TweakDump](https://www.cyberpunk.net/en/modding-support).
 
 [Download Link](https://github.com/AlpyneDreams/TweakDB-Edit/archive/main.zip).
